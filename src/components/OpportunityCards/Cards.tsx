@@ -1,10 +1,8 @@
-/* eslint-disable react/jsx-props-no-spreading */
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import styled from "styled-components";
 import { OpportunityParams, ScreenTypes } from "../../config/types";
 import useOpportunities from "../../hooks/api/useOpportunities";
-import useOpportunitiesFromFile from "../../hooks/api/useOpportunitiesFromFile";
 import Announcement from "../Announcement";
 import OpportunityCardPopup from "../VolunteeringOpportunities/OpportunityCardPopup";
 import {
@@ -17,8 +15,13 @@ import {
   OpportunityApi,
 } from "../VolunteeringOpportunities/types";
 import OpportunityCard from "../VolunteeringOpportunities/OpportunityCard";
-import { filterOpportunity } from "./helpers";
-import { CardsFilter } from "./types";
+import {
+  extractCardsFilter,
+  filterOpportunity,
+  isObjectEmpty,
+  reduceFilter,
+} from "./helpers";
+import { CardsFilter, SetFilter } from "./types";
 import PaginatedGrid from "../core/paginatedGrid/PaginatedGrid";
 import useScreenType from "../../hooks/useScreenType";
 
@@ -28,13 +31,13 @@ interface Props extends React.HTMLAttributes<HTMLDivElement> {
   popup?: boolean;
   setNumOfOpportunities: (numOfOpportunities: number) => void;
   cardsFilter: CardsFilter;
+  setCardsFilter: SetFilter;
+  isFiltersOpen: boolean;
 }
-
-const regexHttpSchema = /^(http|https):\/\/.*/;
 
 const CardsContainer = styled.div`
   display: flex;
-  justify-content: center;
+  justify-content: var(--opportunities-cards-container-justify-content);
 `;
 
 const screenColumnRowsMap: Record<
@@ -52,28 +55,57 @@ export default function Cards({
   popup = false,
   setNumOfOpportunities,
   cardsFilter,
+  setCardsFilter,
+  isFiltersOpen,
 }: Props) {
-  const isUrl = url.toLowerCase().match(regexHttpSchema);
-  const useOpp = isUrl ? useOpportunities : useOpportunitiesFromFile;
-  const { opportunities, loading } = useOpp(url, opportunityParams);
+  const { opportunities, loading } = useOpportunities(url, opportunityParams);
   const [modalOpportunity, setModalOpportunity] = useState<
     Opportunity | undefined
   >();
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const screenSize = useScreenType();
+  const isDesktop = screenSize === ScreenTypes.DESKTOP;
+  const [selectedLan, setSelectedLan] = useState(i18n.language);
 
   const opportunitiesRaw = (opportunities || []) as unknown as OpportunityApi[];
 
   const mappedOpportunities = getMappedOpportunities(opportunitiesRaw, t);
 
+  useEffect(() => {
+    if (
+      mappedOpportunities.length &&
+      (isObjectEmpty(cardsFilter.activityType) || selectedLan !== i18n.language)
+    ) {
+      const dynamicFilters = extractCardsFilter(mappedOpportunities, t);
+
+      setCardsFilter((prevFilter: CardsFilter) => ({
+        ...prevFilter,
+        ...dynamicFilters,
+      }));
+
+      setSelectedLan(i18n.language);
+    }
+  }, [
+    mappedOpportunities,
+    cardsFilter,
+    setCardsFilter,
+    selectedLan,
+    i18n.language,
+    t,
+  ]);
+
+  const reducedFilter = reduceFilter(cardsFilter);
+
   const filteredOpportunities = mappedOpportunities.filter((opp) =>
-    filterOpportunity(opp, cardsFilter),
+    filterOpportunity(opp, reducedFilter),
   );
 
   filteredOpportunities.sort(
     (a, b) =>
       b.lastEditedTimeNotion.getTime() - a.lastEditedTimeNotion.getTime(),
   );
+
+  const { columns, rows } = screenColumnRowsMap[screenSize];
 
   useEffect(() => {
     setNumOfOpportunities(filteredOpportunities.length);
@@ -101,7 +133,8 @@ export default function Cards({
             enableHoverEffect={!modalOpportunity}
           />
         ))}
-        {...screenColumnRowsMap[screenSize]}
+        columns={columns - (isDesktop && isFiltersOpen ? 1 : 0)}
+        rows={rows}
       />
     </CardsContainer>
   ) : (

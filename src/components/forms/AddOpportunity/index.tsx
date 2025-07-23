@@ -96,7 +96,7 @@ export default function AddOpportunity() {
 
       const { success } = await postRequest(data);
       if (success) {
-        navigate(`/${Subpages.ANNOUNCEMENT}/${lng}?pointer=${thankYou}`);
+        navigate(`/${Subpages.ANNOUNCEMENT}/?pointer=${thankYou}`);
       } else {
         setShowErrorAnnouncement(true);
       }
@@ -813,6 +813,9 @@ export default function AddOpportunity() {
                     label={t(
                       "form.addOpportunity.fields.voGroup.information.label",
                     )}
+                    onChangeValidator={({ value }) =>
+                      !value ? t("form.error.required") : undefined
+                    }
                   />
                 </fieldset>
               );

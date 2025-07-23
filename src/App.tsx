@@ -11,6 +11,7 @@ import { googleAnalyticsId } from "./config/constants";
 import { Subpages } from "./config/types";
 import AppContainerContext from "./contexts/AppContainerContext";
 import About from "./pages/About";
+import Announcement from "./pages/Announcement";
 import DataPrivacy from "./pages/DataPrivacy";
 import EventPage from "./pages/EventPage";
 import FAQ from "./pages/FAQ";
@@ -140,8 +141,13 @@ function App() {
                 path={`/${Subpages.FAQS}`}
                 element={<Subpage type={Subpages.FAQS} />}
               />
+
               <Route path={`/${Subpages.FAQ}`} element={<FAQ />} />
               <Route path={`/${Subpages.ABOUT}`} element={<About />} />
+              <Route
+                path={`/${Subpages.ANNOUNCEMENT}`}
+                element={<Announcement />}
+              />
               <Route
                 path={`/${Subpages.LEGAL_NOTICE}`}
                 element={<LegalNotice />}
@@ -175,6 +181,7 @@ function App() {
                 path={`/${Subpages.RAC_GUIDELINES}`}
                 element={<GuidelinesPage />}
               />
+
               <Route path={`/${Subpages.EVENT_PAGE}`} element={<EventPage />} />
               <Route path="/:lng" element={<Landing />} />
               <Route
